@@ -50,6 +50,7 @@ def main(cfg):
 
     max_steps = int(cfg.num_epochs * len(torch_format_dataset)) // (batch_size * gradient_accumulation_steps)
     print(f"max_steps: {max_steps}")
+    ds_cfg = "config/ds_config.json" if os.environ.get("USE_DEEPSPEED", "0") == "1" else None
     training_args = TrainingArguments(
         remove_unused_columns=False,
         per_device_train_batch_size=batch_size,
@@ -69,7 +70,7 @@ def main(cfg):
         save_steps=max_steps,
         save_only_model=True,
         eval_strategy="no",
-        deepspeed="config/ds_config.json",
+        deepspeed=ds_cfg,
         weight_decay=cfg.weight_decay,
         ddp_find_unused_parameters=True,
         seed=cfg.seed,
@@ -78,7 +79,7 @@ def main(cfg):
 
     model = getattr(transformers, model_cfg["hf_class"]).from_pretrained(
         model_id,
-        use_flash_attention_2=model_cfg["flash_attention2"] == "true",
+        attn_implementation="flash_attention_2" if model_cfg["flash_attention2"] == "true" else None,
         torch_dtype=torch.bfloat16,
         trust_remote_code=True,
     )

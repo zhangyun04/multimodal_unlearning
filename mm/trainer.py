@@ -166,15 +166,15 @@ class MMTrainerForgetting(Trainer):
         return {k: v.to(device) for k, v in inputs.items()}
 
     def compute_loss(self, model, inputs, return_outputs=False, *args, **kwargs):
-        model.device = next(model.parameters()).device
-        retain_inputs = self.to_device(model.device, inputs["retain"])
+        device = next(model.parameters()).device
+        retain_inputs = self.to_device(device, inputs["retain"])
 
         if "idk" in inputs:
-            idk_inputs = self.to_device(model.device, inputs["idk"])
+            idk_inputs = self.to_device(device, inputs["idk"])
         if "forget" in inputs:
-            forget_inputs = self.to_device(model.device, inputs["forget"])
+            forget_inputs = self.to_device(device, inputs["forget"])
         if "random" in inputs:
-            random_inputs = self.to_device(model.device, inputs["random"])
+            random_inputs = self.to_device(device, inputs["random"])
 
         if self.loss_type == "retain_ft":
             retain_outputs = model(**retain_inputs)
@@ -319,8 +319,8 @@ class MMTrainerForgetting(Trainer):
             forget_loss = torch.nn.functional.mse_loss(forget_activations.mean(dim=1), self.control_vec)
             forget_loss *= self.loss_beta
 
-            retain_activations = forward_with_cache(model, retain_inputs, target_module, no_grad=False).to(model.device)
-            oracle_retain_activations = forward_with_cache(self.teacher_model, retain_inputs, oracle_target_module, no_grad=True).to(model.device)
+            retain_activations = forward_with_cache(model, retain_inputs, target_module, no_grad=False).to(device)
+            oracle_retain_activations = forward_with_cache(self.teacher_model, retain_inputs, oracle_target_module, no_grad=True).to(device)
             retain_loss = torch.nn.functional.mse_loss(retain_activations, oracle_retain_activations)
 
             loss = forget_loss + retain_loss
@@ -368,23 +368,27 @@ class MMTrainerForgetting(Trainer):
             with torch.no_grad():
                 idk_outputs_oracle = self.teacher_model(**idk_inputs)
                 forget_outputs_oracle = self.teacher_model(**forget_inputs)
-            image_token_index = model.config.image_token_index if not self.is_deepspeed_enabled else model.module.model.config.image_token_index
+            # Support both configs: some models expose image_token_index, others image_token_id (e.g., Qwen2.5-VL)
+            cfg_obj = model.config if not self.is_deepspeed_enabled else model.module.model.config
+            image_token = getattr(cfg_obj, "image_token_index", None)
+            if image_token is None:
+                image_token = getattr(cfg_obj, "image_token_id")
 
-            idk_logits_oracle = remove_image_tokens(idk_inputs["input_ids"], idk_outputs_oracle.logits, image_token_index)
+            idk_logits_oracle = remove_image_tokens(idk_inputs["input_ids"], idk_outputs_oracle.logits, image_token)
 
             idk_loss_oracle = -1 * get_batch_loss(idk_logits_oracle, idk_inputs["labels"])
 
             forget_logits_oracle = remove_image_tokens(
                 forget_inputs["input_ids"],
                 forget_outputs_oracle.logits,
-                image_token_index,
+                image_token,
             )
             forget_loss_oracle = -1 * get_batch_loss(forget_logits_oracle, forget_inputs["labels"])
 
-            idk_logits = remove_image_tokens(idk_inputs["input_ids"], idk_outputs.logits, image_token_index)
+            idk_logits = remove_image_tokens(idk_inputs["input_ids"], idk_outputs.logits, image_token)
             idk_loss_current = -1 * get_batch_loss(idk_logits, idk_inputs["labels"])
 
-            forget_logits = remove_image_tokens(forget_inputs["input_ids"], forget_outputs.logits, image_token_index)
+            forget_logits = remove_image_tokens(forget_inputs["input_ids"], forget_outputs.logits, image_token)
             forget_loss_current = -1 * get_batch_loss(forget_logits, forget_inputs["labels"])
 
             pi_logratios = idk_loss_current - forget_loss_current

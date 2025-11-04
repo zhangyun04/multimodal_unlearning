@@ -1,4 +1,4 @@
-model_family: qwen-vl2-2b
+model_family: qwen-vl-3b
 
 LoRA:
   r: 8
@@ -7,14 +7,14 @@ LoRA:
   
 resume_from_checkpoint: false
 data_path: therem/faces_v1
-split: full+tofu
+split: retain99+tofu
 batch_size: 4
 gradient_accumulation_steps: 2
 max_length: 2048
 num_epochs: 3
 lr: 1e-5
-save_dir: /home/dontsov/unlearning/models/${model_family}/ft_${split}
+save_dir: /home/cxu-serve/p62/ztan12/multimodal_unlearning/models/${model_family}/ft_${split}
 
 weight_decay: 0.01
 seed: 42
-freeze_vision_module: true
+freeze_vision_module: "true"

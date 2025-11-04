@@ -229,13 +229,25 @@ def main(cfg):
             continue
 
         collator_with_ans = partial(
-            mm_data_collator_preprocessor, processor=processor, max_length=cfg.max_length, return_indices=True, return_answers=True
+            mm_data_collator_preprocessor,
+            processor=processor,
+            max_length=cfg.max_length,
+            return_indices=True,
+            return_answers=True,
+            truncation=False,
         )
         eval_dl = get_dataloader(quest_strat, quest_key, ans_key, fol, split, cfg.batch_size, cfg.ds_size, collator_with_ans)
 
-        collator = partial(mm_data_collator_preprocessor, processor=processor, max_length=cfg.max_length, return_indices=True)
-        base_dl = get_dataloader(quest_strat, quest_key, base_ans_key, fol, split, cfg.batch_size // 4, cfg.ds_size, collator)
-        perturb_dl = get_dataloader(quest_strat, quest_key, perturbed_ans_key, fol, split, cfg.batch_size // 4, cfg.ds_size, collator)
+        collator = partial(
+            mm_data_collator_preprocessor,
+            processor=processor,
+            max_length=cfg.max_length,
+            return_indices=True,
+            truncation=False,
+        )
+        sub_bs = max(1, cfg.batch_size // 4)
+        base_dl = get_dataloader(quest_strat, quest_key, base_ans_key, fol, split, sub_bs, cfg.ds_size, collator)
+        perturb_dl = get_dataloader(quest_strat, quest_key, perturbed_ans_key, fol, split, sub_bs, cfg.ds_size, collator)
 
         eval_logs = get_all_evals(cfg, model, processor, eval_task, eval_dl, base_dl, perturb_dl)
 

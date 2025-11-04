@@ -1,5 +1,5 @@
-retain_result: models/llava/ft_retain90+tofu_epoch3_lr1e-05__wd0.01_lora/eval_results/eval_log_aggregated.json
-ckpt_result:   models/llava/ft_full+tofu_epoch3_lr1e-05__wd0.01_lora/eval_results/eval_log_aggregated.json
-method_name: finetune
-submitted_by: therem
-save_file: finetune.csv
+retain_result: models/qwen-vl-3b/ft_retain90+tofu/eval_results/eval_log_aggregated.json
+ckpt_result:   models/qwen-vl-3b/ft_full+tofu/eval_results/eval_log_aggregated.json
+method_name: retain90
+submitted_by: ztan12
+save_file: /home/cxu-serve/p62/ztan12/multimodal_unlearning/models/qwen-vl-3b/ft_retain90+tofu/eval_results/retain90_vs_full.csv

@@ -288,13 +288,14 @@ def mm_forget_data_collator_preprocessor(samples, processor, max_length):
     return res
 
 
-def mm_data_collator_preprocessor(samples, processor, max_length, return_indices=False, return_answers=False):
+def mm_data_collator_preprocessor(samples, processor, max_length, return_indices=False, return_answers=False, truncation=True):
     #  samples is a list of lists, returns a dict with list of lists of tensors
     """
     Preprocess the samples for the model.
     samples: list of dicts with keys question, answer, image
     processor: processor to use for preprocessing
     max_length: maximum length of the input
+    truncation: whether to enable tokenizer truncation. For multimodal eval with images, set to False to avoid special token mismatch.
     return_indices: if True, return the original (from the dataset) indices of the samples
     return_answers: if True, additionally return the answer token ids in the input
     """
@@ -317,7 +318,7 @@ def mm_data_collator_preprocessor(samples, processor, max_length, return_indices
         images=images if images else None,
         return_tensors="pt",
         padding="longest",
-        truncation=True,
+        truncation=truncation,
         max_length=max_length,
     )
 

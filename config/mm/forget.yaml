@@ -1,5 +1,5 @@
-model_family: qwen-vl2-2b
-model_path: models/qwen-vl2-2b/ft_full+tofu
+model_family: qwen-vl-3b
+model_path: /home/cxu-serve/p62/ztan12/multimodal_unlearning/models/qwen-vl-3b/ft_full+tofu
 LoRA:
   r: 0
   alpha: 32
@@ -35,7 +35,7 @@ num_epochs: 5
 # influence - 
 # multi delete
 
-forget_loss: grad_diff_forget_ce_retain_ce
+forget_loss: dpo
 # max_grad_norm: 
 loss_beta: 1.0
 # calculate l1\l0 norm from zero, or from the initial model
@@ -54,4 +54,4 @@ eval_while_train: false
 save_ckpts: false
 save_model: true
 seed: 42
-freeze_vision_module: true
+freeze_vision_module: "true"

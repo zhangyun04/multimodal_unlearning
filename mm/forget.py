@@ -80,33 +80,64 @@ def main(cfg):
         config = AutoConfig.from_pretrained(model_id)
 
         print("Loading from checkpoint")
-        model = getattr(transformers, model_cfg["hf_class"]).from_pretrained(
-            cfg.model_path,
-            config=config,
-            attn_implementation="flash_attention_2" if model_cfg["flash_attention2"] == "true" else None,
-            torch_dtype=torch.bfloat16,
-            trust_remote_code=True,
-        )
-
-        if cfg.l1_lambda != 0 or cfg.l0_lambda != 0 or loss_needs_teacher(cfg.forget_loss):
-            teacher_model = getattr(transformers, model_cfg["hf_class"]).from_pretrained(
+        attn_impl = "flash_attention_2" if model_cfg["flash_attention2"] == "true" else None
+        try:
+            model = getattr(transformers, model_cfg["hf_class"]).from_pretrained(
                 cfg.model_path,
                 config=config,
+                attn_implementation=attn_impl,
                 torch_dtype=torch.bfloat16,
                 trust_remote_code=True,
-                device_map="auto",
-                attn_implementation="flash_attention_2" if model_cfg["flash_attention2"] == "true" else None,
             )
+        except (ImportError, OSError, TypeError) as exc:
+            print(f"Warning: flash attention not available ({exc}). Falling back to default attention.")
+            model = getattr(transformers, model_cfg["hf_class"]).from_pretrained(
+                cfg.model_path,
+                config=config,
+                attn_implementation=None,
+                torch_dtype=torch.bfloat16,
+                trust_remote_code=True,
+            )
+
+        if cfg.l1_lambda != 0 or cfg.l0_lambda != 0 or loss_needs_teacher(cfg.forget_loss):
+            try:
+                teacher_model = getattr(transformers, model_cfg["hf_class"]).from_pretrained(
+                    cfg.model_path,
+                    config=config,
+                    torch_dtype=torch.bfloat16,
+                    trust_remote_code=True,
+                    device_map="auto",
+                    attn_implementation=attn_impl,
+                )
+            except (ImportError, OSError, TypeError) as exc:
+                print(f"Warning: flash attention not available for teacher ({exc}). Falling back.")
+                teacher_model = getattr(transformers, model_cfg["hf_class"]).from_pretrained(
+                    cfg.model_path,
+                    config=config,
+                    torch_dtype=torch.bfloat16,
+                    trust_remote_code=True,
+                    device_map="auto",
+                    attn_implementation=None,
+                )
 
     else:
         print("Loading after merge and unload")
-        model = getattr(transformers, model_cfg["hf_class"]).from_pretrained(
-            model_id,
-            use_flash_attention_2=model_cfg["flash_attention2"] == "true",
-            attn_implementation="flash_attention_2" if model_cfg["flash_attention2"] == "true" else None,
-            torch_dtype=torch.bfloat16,
-            device_map=device_map,
-        )
+        attn_impl = "flash_attention_2" if model_cfg["flash_attention2"] == "true" else None
+        try:
+            model = getattr(transformers, model_cfg["hf_class"]).from_pretrained(
+                model_id,
+                attn_implementation=attn_impl,
+                torch_dtype=torch.bfloat16,
+                device_map=device_map,
+            )
+        except (ImportError, OSError, TypeError) as exc:
+            print(f"Warning: flash attention not available ({exc}). Falling back to default attention.")
+            model = getattr(transformers, model_cfg["hf_class"]).from_pretrained(
+                model_id,
+                attn_implementation=None,
+                torch_dtype=torch.bfloat16,
+                device_map=device_map,
+            )
         # now use the checkpoint to add the LoRA modules
         model = PeftModel.from_pretrained(model, model_id=cfg.model_path)
         # save this as a standard model so that we can again do PEFT style finetuneing from scratch
@@ -121,7 +152,11 @@ def main(cfg):
 
     # now we have a HuggingFace model
     if model_cfg["gradient_checkpointing"] == "true":
-        model.gradient_checkpointing_enable()
+        # Use non-reentrant checkpointing to avoid DDP "marked ready twice" errors
+        try:
+            model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+        except TypeError:
+            model.gradient_checkpointing_enable()
 
     if cfg.LoRA.r != 0 and (cfg.l_norm_from != "zero" or cfg.l1_lambda == 0):
         print("Using LoRA with r: ", cfg.LoRA.r)
@@ -142,8 +177,8 @@ def main(cfg):
         per_device_train_batch_size=cfg.batch_size,
         per_device_eval_batch_size=cfg.batch_size,
         gradient_accumulation_steps=gradient_accumulation_steps,
-        # gradient_checkpointing=
-        # gradient_checkpointing_kwargs={"use_reentrant": False},
+        gradient_checkpointing=True if model_cfg["gradient_checkpointing"] == "true" else False,
+        gradient_checkpointing_kwargs={"use_reentrant": False} if model_cfg["gradient_checkpointing"] == "true" else None,
         warmup_steps=max(1, steps_per_epoch),
         max_steps=max_steps,
         learning_rate=cfg.lr,
@@ -158,7 +193,7 @@ def main(cfg):
         save_strategy="steps" if cfg.save_ckpts else "no",
         save_steps=steps_per_epoch,
         save_only_model=True,
-        ddp_find_unused_parameters=True,
+        ddp_find_unused_parameters=False,
         # deepspeed="config/ds_config.json",
         weight_decay=cfg.weight_decay,
         eval_steps=steps_per_epoch,
