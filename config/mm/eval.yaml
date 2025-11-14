@@ -1,7 +1,6 @@
-model_path: /home/cxu-serve/p62/ztan12/multimodal_unlearning/models/qwen-vl-3b/ft_retain90+tofu
-processor_path: /home/cxu-serve/p62/ztan12/multimodal_unlearning/models/qwen-vl-3b/ft_retain90+tofu
+model_path: /home/cxu-serve/p62/ztan12/multimodal_unlearning/models/qwen-vl-3b/finetuned/ft_full+tofu/batch_size1_lr1e-05
+processor_path: /home/cxu-serve/p62/ztan12/multimodal_unlearning/models/qwen-vl-3b/finetuned/ft_full+tofu/batch_size1_lr1e-05
 model_family: qwen-vl-3b
-
 save_dir: ${model_path}/eval_results/
 
 #dataset path for each of the datasets to be evaluated

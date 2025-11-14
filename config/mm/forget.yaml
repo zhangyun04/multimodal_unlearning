@@ -1,7 +1,7 @@
 model_family: qwen-vl-3b
-model_path: /home/cxu-serve/p62/ztan12/multimodal_unlearning/models/qwen-vl-3b/ft_full+tofu
+model_path: /home/cxu-serve/p62/ztan12/multimodal_unlearning/models/qwen-vl-3b/finetuned/ft_full+tofu/batch_size1_lr1e-05
 LoRA:
-  r: 0
+  r: 8
   alpha: 32
   dropout: 0.00
 
@@ -11,8 +11,8 @@ retain_data_path: therem/faces_v1
 
 forget_split: forget10+tofu
 retain_split: retain90+tofu
-batch_size: 2
-gradient_accumulation_steps: 4
+batch_size: 1
+gradient_accumulation_steps: 2
 num_epochs: 5
 # available losses 
 # retain_ft - finetune on retain
@@ -35,7 +35,7 @@ num_epochs: 5
 # influence - 
 # multi delete
 
-forget_loss: dpo
+forget_loss: scrub
 # max_grad_norm: 
 loss_beta: 1.0
 # calculate l1\l0 norm from zero, or from the initial model

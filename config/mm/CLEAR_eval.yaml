@@ -1,0 +1,26 @@
+model_path: /home/cxu-serve/p62/ztan12/multimodal_unlearning/models/qwen-vl-3b/finetuned/ft_full+tofu/batch_size1_lr1e-05/npo_forget10+tofu_L1_0.0_fromzero
+processor_path: /home/cxu-serve/p62/ztan12/multimodal_unlearning/models/qwen-vl-3b/finetuned/ft_full+tofu/batch_size1_lr1e-05/npo_forget10+tofu_L1_0.0_fromzero
+model_family: qwen-vl-3b
+save_dir: ${model_path}/clear_eval_results/
+
+# Base dataset repository or folder
+data_folder: therem/faces_v1
+
+# Dataset subsets/folders for each task
+forget_cls_folder: forget10_perturbed
+forget_gen_folder: forget10_perturbed
+retain_cls_folder: retain_perturbed
+retain_gen_folder: retain_perturbed
+realface_folder: real_faces
+realworld_folder: real_world
+
+# Which subsets to evaluate
+eval_list: [forget, retain, realface, realworld]
+
+# Output file prefix (files will be saved under save_dir)
+output_file: clear_eval
+
+generation:
+  max_new_tokens: 50
+
+

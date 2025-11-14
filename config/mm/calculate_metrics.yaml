@@ -1,5 +1,5 @@
-retain_result: models/qwen-vl-3b/ft_retain90+tofu/eval_results/eval_log_aggregated.json
-ckpt_result:   models/qwen-vl-3b/ft_full+tofu/eval_results/eval_log_aggregated.json
-method_name: retain90
+retain_result: models/qwen-vl-3b/finetuned/ft_retain90+tofu/batch_size1_lr1e-05/eval_results/eval_log_aggregated.json
+ckpt_result:   models/qwen-vl-3b/finetuned/ft_full+tofu/batch_size1_lr1e-05/eval_results/eval_log_aggregated.json
+method_name: finetuned_only #change method name
 submitted_by: ztan12
-save_file: /home/cxu-serve/p62/ztan12/multimodal_unlearning/models/qwen-vl-3b/ft_retain90+tofu/eval_results/retain90_vs_full.csv
+save_file: /home/cxu-serve/p62/ztan12/multimodal_unlearning/models/qwen-vl-3b/finetuned/ft_retain90+tofu/batch_size1_lr1e-05/eval_results/${method_name}.csv

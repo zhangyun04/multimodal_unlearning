@@ -301,12 +301,33 @@ class MMTrainerForgetting(Trainer):
 
         elif self.loss_type == "rmu":
             # !python3 -m rmu.unlearn --model_name mistralai/Mixtral-8x7B-Instruct-v0.1  --param_ids 7 --steering_coeffs 300,300 --alpha 1600,1600  --output_dir models/mixtral_rmu
-            if self.is_deepspeed_enabled:
-                target_module = model.module.model.language_model.model.layers[7]
-                oracle_target_module = self.teacher_model.module.language_model.model.layers[7]
-            else:
-                target_module = model.language_model.model.layers[7]
-                oracle_target_module = self.teacher_model.language_model.model.layers[7]
+            def resolve_layer7_layers(m):
+                base = m
+                # unwrap deepspeed module if needed
+                if getattr(self, "is_deepspeed_enabled", False) and hasattr(m, "module"):
+                    base = m.module
+                # common structures: base.model.language_model..., base.language_model...
+                candidate_objs = []
+                if hasattr(base, "model"):
+                    candidate_objs.append(base.model)
+                candidate_objs.append(base)
+                for obj in candidate_objs:
+                    lm = None
+                    if hasattr(obj, "language_model"):
+                        lm = getattr(obj, "language_model")
+                    elif hasattr(obj, "model") and hasattr(obj.model, "language_model"):
+                        lm = getattr(obj.model, "language_model")
+                    if lm is None:
+                        continue
+                    # some models have lm.model.layers, others lm.layers
+                    if hasattr(lm, "model") and hasattr(lm.model, "layers"):
+                        return lm.model.layers[7]
+                    if hasattr(lm, "layers"):
+                        return lm.layers[7]
+                raise AttributeError("Unable to locate transformer layers[7] for RMU on this model")
+
+            target_module = resolve_layer7_layers(model)
+            oracle_target_module = resolve_layer7_layers(self.teacher_model)
 
             forget_activations = forward_with_cache(model, forget_inputs, target_module, no_grad=False)  # .to(model.device)
 

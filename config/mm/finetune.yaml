@@ -7,13 +7,13 @@ LoRA:
   
 resume_from_checkpoint: false
 data_path: therem/faces_v1
-split: retain95+tofu
-batch_size: 4
-gradient_accumulation_steps: 2
+split: retain90+tofu
+batch_size: 1
+gradient_accumulation_steps: 1
 max_length: 2048
 num_epochs: 3
 lr: 1e-5
-save_dir: /home/cxu-serve/p62/ztan12/multimodal_unlearning/models/${model_family}/ft_${split}
+save_dir: /home/cxu-serve/p62/ztan12/multimodal_unlearning/models/${model_family}/finetuned/ft_${split}/batch_size${batch_size}_lr${lr}
 
 weight_decay: 0.01
 seed: 42
